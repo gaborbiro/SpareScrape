@@ -1,11 +1,14 @@
 package app.gaborbiro.sparescrape.data
 
+import java.util.*
 import java.util.prefs.Preferences
 
 object Preferences {
 
+    // Location on Windows: HKEY_CURRENT_USER\Software\JavaSoft\Prefs
+    private val prefs by lazy { Preferences.userRoot().node("app/gaborbiro/sparescrape") }
+
     fun save(key: String, value: String) {
-        val prefs = Preferences.userRoot()
         if (value.length > Preferences.MAX_VALUE_LENGTH) {
             val tokenCount: Int = value.length / Preferences.MAX_VALUE_LENGTH
             val tokens = (0..tokenCount).map {
@@ -19,10 +22,11 @@ object Preferences {
         } else {
             prefs.put(key, value)
         }
+        prefs.flush()
+        prefs.sync()
     }
 
     fun get(key: String, default: String?): String? {
-        val prefs = Preferences.userRoot()
         prefs[getSequenceKey(key), null]?.let {
             val tokenCount = it.toInt()
             return (0..tokenCount).map {
@@ -34,7 +38,6 @@ object Preferences {
     }
 
     fun clear(key: String) {
-        val prefs = Preferences.userRoot()
         prefs[getSequenceKey(key), null]?.let {
             val tokenCount = it.toInt()
             (0..tokenCount).forEach {
@@ -44,6 +47,8 @@ object Preferences {
         } ?: run {
             prefs.remove(key)
         }
+        prefs.flush()
+        prefs.sync()
     }
 
     private fun getSequenceKey(key: String) = key + "_sequence"

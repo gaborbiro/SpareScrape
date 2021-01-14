@@ -5,6 +5,8 @@ class LonLat(
     val latitude: String
 ) {
     override fun toString(): String {
-        return "(longitude='$longitude', latitude='$latitude')"
+        return "http://www.google.com/maps/place/$longitude,$latitude"
     }
+
+    fun toGoogleApiString()  = "$longitude,$latitude"
 }

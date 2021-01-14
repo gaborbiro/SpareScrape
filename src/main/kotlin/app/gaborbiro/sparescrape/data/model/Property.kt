@@ -2,9 +2,12 @@ package app.gaborbiro.sparescrape.data.model
 
 open class Property(
     val url: String,
-    val senderName: String,
+    val unsuitable: Boolean,
+    val senderName: String?,
+    val messageUrl: String?,
     val price: String,
     val pricePerMonth: String,
+    val pricePerMonthInt: Int,
     val billIncluded: String,
     val deposit: String,
     val available: String,
@@ -19,13 +22,67 @@ open class Property(
     val preferredGender: String,
     val occupation: String,
     val location: LonLat?
-)
+) {
+    /**
+     * Warning: [senderName] and [messageUrl] cannot be deleted by passing null
+     */
+    fun clone(
+        url: String? = null,
+        unsuitable: Boolean? = null,
+        senderName: String? = null,
+        messageUrl: String? = null,
+        price: String? = null,
+        pricePerMonth: String? = null,
+        pricePerMonthInt: Int? = null,
+        billIncluded: String? = null,
+        deposit: String? = null,
+        available: String? = null,
+        minTerm: String? = null,
+        maxTerm: String? = null,
+        furnishings: String? = null,
+        broadband: String? = null,
+        livingRoom: String? = null,
+        flatmates: String? = null,
+        totalRooms: String? = null,
+        householdGender: String? = null,
+        preferredGender: String? = null,
+        occupation: String? = null,
+        location: LonLat? = null
+    ): Property {
+        return Property(
+            url = url ?: this.url,
+            unsuitable = unsuitable ?: this.unsuitable,
+            senderName = senderName ?: this.senderName,
+            messageUrl = messageUrl ?: this.messageUrl,
+            price = price ?: this.price,
+            pricePerMonth = pricePerMonth ?: this.pricePerMonth,
+            pricePerMonthInt = pricePerMonthInt ?: this.pricePerMonthInt,
+            billIncluded = billIncluded ?: this.billIncluded,
+            deposit = deposit ?: this.deposit,
+            available = available ?: this.available,
+            minTerm = minTerm ?: this.minTerm,
+            maxTerm = maxTerm ?: this.maxTerm,
+            furnishings = furnishings ?: this.furnishings,
+            broadband = broadband ?: this.broadband,
+            livingRoom = livingRoom ?: this.livingRoom,
+            flatmates = flatmates ?: this.flatmates,
+            totalRooms = totalRooms ?: this.totalRooms,
+            householdGender = householdGender ?: this.householdGender,
+            preferredGender = preferredGender ?: this.preferredGender,
+            occupation = occupation ?: this.occupation,
+            location = location ?: this.location
+        )
+    }
+}
 
 class PropertyWithDistance(
     url: String,
-    senderName: String,
+    unsuitable: Boolean,
+    senderName: String?,
+    messageUrl: String?,
     price: String,
     pricePerMonth: String,
+    pricePerMonthInt: Int,
     billIncluded: String,
     deposit: String,
     available: String,
@@ -40,12 +97,15 @@ class PropertyWithDistance(
     preferredGender: String,
     occupation: String,
     location: LonLat?,
-    val distance: String
+    val distances: List<Distance>
 ) : Property(
     url = url,
+    unsuitable = unsuitable,
     senderName = senderName,
+    messageUrl = messageUrl,
     price = price,
     pricePerMonth = pricePerMonth,
+    pricePerMonthInt = pricePerMonthInt,
     billIncluded = billIncluded,
     deposit = deposit,
     available = available,
@@ -60,12 +120,16 @@ class PropertyWithDistance(
     preferredGender = preferredGender,
     occupation = occupation,
     location = location
-) {
-    constructor(property: Property, distance: String) : this(
+), Comparable<PropertyWithDistance> {
+
+    constructor(property: Property, distances: List<Distance>) : this(
         url = property.url,
+        unsuitable = property.unsuitable,
         senderName = property.senderName,
+        messageUrl = property.messageUrl,
         price = property.price,
         pricePerMonth = property.pricePerMonth,
+        pricePerMonthInt = property.pricePerMonthInt,
         billIncluded = property.billIncluded,
         deposit = property.deposit,
         available = property.available,
@@ -80,6 +144,12 @@ class PropertyWithDistance(
         preferredGender = property.preferredGender,
         occupation = property.occupation,
         location = property.location,
-        distance = distance
+        distances = distances
     )
+
+    override fun compareTo(other: PropertyWithDistance): Int {
+        return averageDistance().compareTo(other.averageDistance())
+    }
+
+    private fun averageDistance() = this.distances.map { it.routes.minByOrNull { it.timeMinutes }!!.timeMinutes }.average().toInt()
 }
