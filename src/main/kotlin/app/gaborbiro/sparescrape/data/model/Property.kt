@@ -1,13 +1,15 @@
 package app.gaborbiro.sparescrape.data.model
 
+import app.gaborbiro.sparescrape.MAX_DISTANCE_MIN
+import app.gaborbiro.sparescrape.destinations
+
 open class Property(
     val url: String,
+    val title: String,
     val unsuitable: Boolean,
     val senderName: String?,
     val messageUrl: String?,
-    val price: String,
-    val pricePerMonth: String,
-    val pricePerMonthInt: Int,
+    val prices: Array<Price>,
     val billIncluded: String,
     val deposit: String,
     val available: String,
@@ -28,12 +30,11 @@ open class Property(
      */
     fun clone(
         url: String? = null,
+        title: String? = null,
         unsuitable: Boolean? = null,
         senderName: String? = null,
         messageUrl: String? = null,
-        price: String? = null,
-        pricePerMonth: String? = null,
-        pricePerMonthInt: Int? = null,
+        prices: Array<Price>? = null,
         billIncluded: String? = null,
         deposit: String? = null,
         available: String? = null,
@@ -51,12 +52,11 @@ open class Property(
     ): Property {
         return Property(
             url = url ?: this.url,
+            title = title ?: this.title,
             unsuitable = unsuitable ?: this.unsuitable,
             senderName = senderName ?: this.senderName,
             messageUrl = messageUrl ?: this.messageUrl,
-            price = price ?: this.price,
-            pricePerMonth = pricePerMonth ?: this.pricePerMonth,
-            pricePerMonthInt = pricePerMonthInt ?: this.pricePerMonthInt,
+            prices = prices ?: this.prices,
             billIncluded = billIncluded ?: this.billIncluded,
             deposit = deposit ?: this.deposit,
             available = available ?: this.available,
@@ -76,13 +76,13 @@ open class Property(
 }
 
 class PropertyWithDistance(
+    val index: Int,
     url: String,
+    title: String,
     unsuitable: Boolean,
     senderName: String?,
     messageUrl: String?,
-    price: String,
-    pricePerMonth: String,
-    pricePerMonthInt: Int,
+    prices: Array<Price>,
     billIncluded: String,
     deposit: String,
     available: String,
@@ -100,12 +100,11 @@ class PropertyWithDistance(
     val distances: List<Distance>
 ) : Property(
     url = url,
+    title = title,
     unsuitable = unsuitable,
     senderName = senderName,
     messageUrl = messageUrl,
-    price = price,
-    pricePerMonth = pricePerMonth,
-    pricePerMonthInt = pricePerMonthInt,
+    prices = prices,
     billIncluded = billIncluded,
     deposit = deposit,
     available = available,
@@ -122,14 +121,14 @@ class PropertyWithDistance(
     location = location
 ), Comparable<PropertyWithDistance> {
 
-    constructor(property: Property, distances: List<Distance>) : this(
+    constructor(index: Int, property: Property, distances: List<Distance>) : this(
+        index = index,
         url = property.url,
+        title = property.title,
         unsuitable = property.unsuitable,
         senderName = property.senderName,
         messageUrl = property.messageUrl,
-        price = property.price,
-        pricePerMonth = property.pricePerMonth,
-        pricePerMonthInt = property.pricePerMonthInt,
+        prices = property.prices,
         billIncluded = property.billIncluded,
         deposit = property.deposit,
         available = property.available,
@@ -148,8 +147,23 @@ class PropertyWithDistance(
     )
 
     override fun compareTo(other: PropertyWithDistance): Int {
-        return averageDistance().compareTo(other.averageDistance())
+        return averageScore().compareTo(other.averageScore())
     }
 
-    private fun averageDistance() = this.distances.map { it.routes.minByOrNull { it.timeMinutes }!!.timeMinutes }.average().toInt()
+    fun averageScore(): Int {
+        return this.distances.map {
+            val bestRoute = it.routes.minByOrNull { it.timeMinutes }!!
+            (MAX_DISTANCE_MIN - bestRoute.timeMinutes) * destinations[it.destination]!!.second
+        }.average().toInt()
+    }
+}
+
+class Price(
+    val price: String,
+    val pricePerMonth: String,
+    val pricePerMonthInt: Int
+) {
+    override fun toString(): String {
+        return pricePerMonth + price.let { if (it != pricePerMonth) " ($price)" else "" }
+    }
 }

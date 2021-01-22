@@ -74,11 +74,20 @@ object PropertyRepository {
     }
 
     // END properties with distances calculated
+
+    fun getNextIndex(): Int {
+        return synchronized(this) {
+            val index = Preferences.getInt(PREF_INDEX, 0)
+            Preferences.setInt(PREF_INDEX, index + 1)
+            index + 1
+        }
+    }
 }
 
 private const val PREF_MESSAGES = "messages"
 private const val PREF_PROPERTIES = "properties"
 private const val PREF_PROPERTIES_WITH_DISTANCE = "properties_with_distance"
+private const val PREF_INDEX = "index"
 
 private class MessagesWrapper(
     val data: List<Message>

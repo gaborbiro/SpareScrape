@@ -116,18 +116,20 @@ object Scrape {
         ensureBrowser()
         driver[propertyUrl]
         with(driver) {
-            val price = findSimpleText(
-                "//div[@class=\"property-details\"]/section[@class=\"feature feature--price_room_only\"]/ul/li[1]/strong"
-            )
-            val (pricePerMonth, pricePerMonthInt) = perWeekToPerMonth(price)
+            val pricesXpath =
+                "//div[@class=\"property-details\"]/section[@class=\"feature feature--price_room_only\"]/ul/li"
+            val prices: Array<String>? = runCatching { findElements(By.xpath(pricesXpath)) }.getOrNull()?.mapNotNull {
+                val price = it.findElement(By.xpath("strong")).text
+                val comment = it.findElement(By.xpath("small")).text
+                if (!comment.contains("NOW LET")) price else null
+            }?.toTypedArray()
             return Property(
                 url = propertyUrl,
+                title = findSimpleText("//h1[1]"),
                 unsuitable = linkExists("Marked as Unsuitable"),
                 senderName = senderName,
                 messageUrl = messageUrl,
-                price = price,
-                pricePerMonth = pricePerMonth,
-                pricePerMonthInt = pricePerMonthInt,
+                prices = prices?.let { perWeekToPerMonth(prices) } ?: emptyArray(),
                 location = findRegex("latitude: \"(.*?)\",longitude: \"(.*?)\"")?.let { LonLat(it[0], it[1]) },
                 billIncluded = findSimpleText(
                     "//dt[@class=\"feature-list__key\" and text()=\"Bills included?\"]/following-sibling::dd[1]"
@@ -184,7 +186,30 @@ object Scrape {
     fun markAsUnsuitable(propertyUrl: String, openUrl: Boolean) {
         ensureBrowser()
         if (openUrl) driver[propertyUrl]
-        runCatching { driver.findElement(By.linkText("Mark as unsuitable")) }.getOrNull()?.click()
+        runCatching { driver.findElement(By.linkText("Mark as unsuitable")) }.getOrNull()
+            ?.let {
+                it.click()
+                println("Marked as unsuitable")
+                return
+            }
+        runCatching { driver.findElement(By.linkText("Saved - remove ad")) }.getOrNull()?.let {
+            it.click()
+            driver[propertyUrl]
+            runCatching { driver.findElement(By.linkText("Mark as unsuitable")) }.getOrNull()
+                ?.let {
+                    it.click()
+                    println("Marked as unsuitable")
+                    return
+                }
+        }
+        runCatching { driver.findElement(By.linkText("Contacted")) }.getOrNull()?.let {
+            it.click()
+            runCatching { driver.findElement(By.xpath("//input[@value='unsuitable']")) }.getOrNull()?.click()
+            runCatching { driver.findElement(By.className("submit")) }.getOrNull()?.click()
+            println("Marked as unsuitable")
+            return
+        }
+        println("Failed to mark as unsuitable")
     }
 
     fun tagMessage(messageUrl: String, openUrl: Boolean = false, vararg tags: Tag) {

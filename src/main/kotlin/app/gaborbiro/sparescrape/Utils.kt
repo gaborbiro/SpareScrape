@@ -1,5 +1,6 @@
 package app.gaborbiro.sparescrape
 
+import app.gaborbiro.sparescrape.data.model.Price
 import app.gaborbiro.sparescrape.data.model.Property
 import app.gaborbiro.sparescrape.data.model.PropertyWithDistance
 import java.io.BufferedReader
@@ -31,10 +32,11 @@ fun addPadding(text: String, totalLength: Int): String {
     }
 }
 
-fun perWeekToPerMonth(price: String): Pair<String, Int> {
-    if (price == MISSING_VALUE) {
-        return Pair(MISSING_VALUE, -1)
-    }
+fun perWeekToPerMonth(prices: Array<String>): Array<Price> {
+    return prices.map { perWeekToPerMonth(it) }.toTypedArray()
+}
+
+fun perWeekToPerMonth(price: String): Price {
     val pricePerMonth = if (price.endsWith("pw")) {
         val matcher = price.matcher("([^\\d])([\\d\\.,]+)[\\s]*pw")
         if (matcher.find()) {
@@ -46,25 +48,34 @@ fun perWeekToPerMonth(price: String): Pair<String, Int> {
     } else price
     val matcher = pricePerMonth.matcher("([^\\d])([\\d\\.,]+)[\\s]*pcm")
     return if (matcher.find()) {
-        Pair(pricePerMonth, matcher.group(2).replace(",", "").toInt())
+        Price(price, pricePerMonth, matcher.group(2).replace(",", "").toInt())
     } else {
         println("Error parsing price $price")
-        Pair(pricePerMonth, -1)
+        Price(price, pricePerMonth, -1)
     }
+}
+
+fun Map<*, *>.prettyPrint(): String {
+    val longestKeyLength = keys.maxByOrNull { it.toString().length }!!.toString().length
+    return map {
+        addPadding(it.key.toString(), longestKeyLength + 1) + ": " + it.value
+    }.joinToString("\n")
 }
 
 inline fun <reified T> T.prettyPrint(): String {
     val fields = mutableListOf<Field>().apply {
         getAllFields(this, T::class.java)
     }
-    val map = fields.map {
+    val map: Map<String, String> = fields.map {
         it.isAccessible = true
-        it.name to (it[this]?.toString() ?: "")
+        val strValue = when (val value = it[this]) {
+            is Iterable<*> -> value.joinToString(", ")
+            is Array<*> -> value.joinToString(", ")
+            else -> value?.toString() ?: ""
+        }
+        it.name to (strValue)
     }.associate { it }
-    val longestKeyLength = map.keys.maxByOrNull { it.length }!!.length
-    return map.map {
-        addPadding(it.key, longestKeyLength + 1) + ": " + it.value
-    }.joinToString("\n")
+    return map.prettyPrint()
 }
 
 fun getAllFields(fields: MutableList<Field>, type: Class<*>): List<Field> {
@@ -99,19 +110,34 @@ fun cleanUrl(url: String): String {
 
 fun validate(property: Property): Boolean {
     if (property is PropertyWithDistance) {
-        if (property.distances.any { it.routes.minByOrNull { it.timeMinutes }!!.timeMinutes > 40 }) {
+        if (property.distances.any { it.routes.minByOrNull { it.timeMinutes }!!.timeMinutes > MAX_DISTANCE_MIN }) {
+            println("Rejected: Too far")
             return false
         }
     }
-    if (property.pricePerMonthInt > 850) return false
+    if (property.prices.all { it.pricePerMonthInt > MAX_PRICE }) {
+        println("Rejected: Too exp")
+        return false
+    }
     if (property.furnishings != MISSING_VALUE && property.furnishings.equals(
             "Unfurnished",
             ignoreCase = true
         )
-    ) return false
-    if (property.livingRoom != MISSING_VALUE && property.livingRoom.equals("No", ignoreCase = true)) return false
-    if (property.flatmates != MISSING_VALUE && property.flatmates.toInt() > 3) return false
-    if (property.totalRooms != MISSING_VALUE && property.totalRooms.toInt() > 4) return false
+    ) {
+        println("Rejected: Unfurnished")
+        return false
+    }
+    if (property.livingRoom != MISSING_VALUE && property.livingRoom.equals("No", ignoreCase = true)) {
+        println("Rejected: No living room")
+        return false
+    }
+    if (property.flatmates != MISSING_VALUE && property.flatmates.toInt() > MAX_FLATMATES) {
+        println("Rejected: More than 3 flatmates")
+        return false
+    }
+    if (property.totalRooms != MISSING_VALUE && property.totalRooms.toInt() > MAX_BEDROOMS) {
+        println("Rejected: More than 4 bedrooms")
+        return false
+    }
     return true
 }
-

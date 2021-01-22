@@ -1,6 +1,5 @@
 package app.gaborbiro.sparescrape.data
 
-import java.util.*
 import java.util.prefs.Preferences
 
 object Preferences {
@@ -9,6 +8,7 @@ object Preferences {
     private val prefs by lazy { Preferences.userRoot().node("app/gaborbiro/sparescrape") }
 
     fun save(key: String, value: String) {
+        clear(key)
         if (value.length > Preferences.MAX_VALUE_LENGTH) {
             val tokenCount: Int = value.length / Preferences.MAX_VALUE_LENGTH
             val tokens = (0..tokenCount).map {
@@ -22,8 +22,6 @@ object Preferences {
         } else {
             prefs.put(key, value)
         }
-        prefs.flush()
-        prefs.sync()
     }
 
     fun get(key: String, default: String?): String? {
@@ -37,6 +35,14 @@ object Preferences {
         }
     }
 
+    fun getInt(key: String, default: Int): Int {
+        return prefs.getInt(key, default)
+    }
+
+    fun setInt(key: String, value: Int) {
+        prefs.putInt(key, value)
+    }
+
     fun clear(key: String) {
         prefs[getSequenceKey(key), null]?.let {
             val tokenCount = it.toInt()
@@ -47,8 +53,6 @@ object Preferences {
         } ?: run {
             prefs.remove(key)
         }
-        prefs.flush()
-        prefs.sync()
     }
 
     private fun getSequenceKey(key: String) = key + "_sequence"

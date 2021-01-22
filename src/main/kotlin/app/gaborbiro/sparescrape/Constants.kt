@@ -17,9 +17,9 @@ val TAMAS_COORDS = LonLat("51.5156236","-0.0679687")
 val SCHWANN_COORDS = LonLat("51.4999826","-0.0501279")
 
 val destinations = mapOf(
-    "Whole Foods" to WHOLE_FOODS_COORDS,
-    "Tamas" to TAMAS_COORDS,
-    "Schwann" to SCHWANN_COORDS
+    "Whole Foods" to Pair(WHOLE_FOODS_COORDS, .5f),
+    "Tamas" to Pair(TAMAS_COORDS, 2f),
+    "Schwann" to Pair(SCHWANN_COORDS, 3f)
 )
 
 val GOOGLE_MAPS_API_KEY: String by lazy {
@@ -31,3 +31,8 @@ val GOOGLE_MAPS_API_KEY: String by lazy {
 const val AVG_WEEKS_IN_MONTH = 365.0 / 7 / 12
 
 const val MISSING_VALUE = "missing"
+
+const val MAX_PRICE = 800
+const val MAX_DISTANCE_MIN = 35
+const val MAX_FLATMATES = 3
+const val MAX_BEDROOMS = 4

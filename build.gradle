@@ -15,14 +15,15 @@ dependencies {
     implementation "org.seleniumhq.selenium:selenium-java:3.141.59"
     // https://mvnrepository.com/artifact/io.cucumber/cucumber-java
     implementation "io.cucumber:cucumber-java:5.6.0"
-
     implementation 'com.google.code.gson:gson:2.8.6'
-
-    implementation "org.jetbrains.kotlin:kotlin-stdlib"
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
 }
 
-test {
-    useJUnitPlatform()
+jar {
+    manifest {
+        attributes "Main-Class": "app.gaborbiro.sparescrape.SpareScrapeKt"
+    }
+
+    from { configurations.compileClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+
+    destinationDirectory = file(rootDir)
 }
